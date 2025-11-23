@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///schedule.db')
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///db.sqlite')
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret')
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -16,7 +16,6 @@ app.config['SECRET_KEY'] = SECRET_KEY
 
 db = SQLAlchemy(app)
 
-# Models
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -46,7 +45,7 @@ class Room(db.Model):
 class Timeslot(db.Model):
     __tablename__ = 'timeslots'
     id = db.Column(db.Integer, primary_key=True)
-    day_of_week = db.Column(db.Integer, nullable=False)  # 1=Mon..6=Sat
+    day_of_week = db.Column(db.Integer, nullable=False)
     start_time = db.Column(db.String, nullable=False)
     end_time = db.Column(db.String, nullable=False)
     label = db.Column(db.String)
@@ -60,12 +59,10 @@ class ScheduleEntry(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'))
     timeslot_id = db.Column(db.Integer, db.ForeignKey('timeslots.id'))
     note = db.Column(db.String)
-
     __table_args__ = (
         db.UniqueConstraint('class_id','timeslot_id', name='u_class_timeslot'),
     )
 
-# Pages
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -83,7 +80,7 @@ def admin():
 def teacher_view():
     return render_template('teacher.html')
 
-# API: classes
+# API endpoints
 @app.route('/api/classes', methods=['GET','POST'])
 def api_classes():
     if request.method == 'GET':
@@ -94,7 +91,46 @@ def api_classes():
     db.session.add(c); db.session.commit()
     return jsonify({'id': c.id})
 
-# API: schedule CRUD with conflict checks
+@app.route('/api/subjects', methods=['GET','POST'])
+def api_subjects():
+    if request.method == 'GET':
+        data = [dict(id=s.id, name=s.name) for s in Subject.query.all()]
+        return jsonify(data)
+    payload = request.json or request.form
+    s = Subject(name=payload.get('name'))
+    db.session.add(s); db.session.commit()
+    return jsonify({'id': s.id})
+
+@app.route('/api/rooms', methods=['GET','POST'])
+def api_rooms():
+    if request.method == 'GET':
+        data = [dict(id=r.id, name=r.name, capacity=r.capacity) for r in Room.query.all()]
+        return jsonify(data)
+    payload = request.json or request.form
+    r = Room(name=payload.get('name'), capacity=payload.get('capacity'))
+    db.session.add(r); db.session.commit()
+    return jsonify({'id': r.id})
+
+@app.route('/api/timeslots', methods=['GET','POST'])
+def api_timeslots():
+    if request.method == 'GET':
+        data = [dict(id=t.id, day_of_week=t.day_of_week, start_time=t.start_time, end_time=t.end_time, label=t.label) for t in Timeslot.query.order_by(Timeslot.day_of_week, Timeslot.start_time).all()]
+        return jsonify(data)
+    payload = request.json or request.form
+    t = Timeslot(day_of_week=payload.get('day_of_week'), start_time=payload.get('start_time'), end_time=payload.get('end_time'), label=payload.get('label'))
+    db.session.add(t); db.session.commit()
+    return jsonify({'id': t.id})
+
+@app.route('/api/users', methods=['GET','POST'])
+def api_users():
+    if request.method == 'GET':
+        data = [dict(id=u.id, email=u.email, full_name=u.full_name, role=u.role) for u in User.query.all()]
+        return jsonify(data)
+    payload = request.json or request.form
+    u = User(email=payload.get('email'), full_name=payload.get('full_name'), role=payload.get('role'))
+    db.session.add(u); db.session.commit()
+    return jsonify({'id': u.id})
+
 @app.route('/api/schedule', methods=['GET','POST','DELETE'])
 def api_schedule():
     if request.method == 'GET':
