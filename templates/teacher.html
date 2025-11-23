@@ -12,7 +12,12 @@
 <script>
 document.getElementById('go').addEventListener('click', async ()=>{
   const email = document.getElementById('email').value;
-  alert('Interface prête ; connecte-la aux API selon ton déploiement.');
+  const users = await (await fetch('/api/users')).json();
+  const user = users.find(u=>u.email===email);
+  if(!user){ alert('Aucun enseignant trouvé'); return; }
+  const res = await fetch('/api/schedule?teacher_id='+user.id);
+  const data = await res.json();
+  document.getElementById('list').innerHTML = data.length ? data.map(e=>`<div style="border:1px solid #ddd;padding:8px;margin:6px">Séance #${e.id} — classe:${e.class_id} sujet:${e.subject_id} salle:${e.room_id} créneau:${e.timeslot_id}</div>`).join('') : '<small>Aucune séance</small>';
 });
 </script>
 </body>
