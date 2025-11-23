@@ -4,6 +4,7 @@
 <body>
 <main>
   <h1>Admin — Gestion</h1>
+
   <section>
     <h2>Créer une séance</h2>
     <form id="createForm">
@@ -12,17 +13,38 @@
       <label>Enseignant<select id="teacherSelect"></select></label>
       <label>Salle<select id="roomSelect"></select></label>
       <label>Créneau<select id="timeslotSelect"></select></label>
+      <label>Note<input id="note" /></label>
       <button type="submit">Ajouter</button>
     </form>
   </section>
-  <section id="list"></section>
+
+  <section>
+    <h2>Emplois du temps</h2>
+    <div id="list"></div>
+  </section>
+
 </main>
 <script>
 async function loadOptions(){
   const c = await (await fetch('/api/classes')).json();
   document.getElementById('classSelect').innerHTML = c.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
-  // subjects, teachers, rooms, timeslots -> simple placeholders for now
+  const s = await (await fetch('/api/subjects')).json();
+  document.getElementById('subjectSelect').innerHTML = s.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+  const u = await (await fetch('/api/users')).json();
+  document.getElementById('teacherSelect').innerHTML = u.map(x=>`<option value="${x.id}">${x.full_name} (${x.email})</option>`).join('');
+  const r = await (await fetch('/api/rooms')).json();
+  document.getElementById('roomSelect').innerHTML = r.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+  const t = await (await fetch('/api/timeslots')).json();
+  document.getElementById('timeslotSelect').innerHTML = t.map(x=>`<option value="${x.id}">Jour ${x.day_of_week} — ${x.label} (${x.start_time}-${x.end_time})</option>`).join('');
+  loadList();
 }
+async function loadList(){
+  const classId = document.getElementById('classSelect').value;
+  const res = await fetch('/api/schedule?class_id='+classId);
+  const data = await res.json();
+  document.getElementById('list').innerHTML = data.length ? data.map(e=>`<div style="border:1px solid #ddd;padding:8px;margin:6px">Séance #${e.id} — classe:${e.class_id} sujet:${e.subject_id} enseignant:${e.teacher_id} salle:${e.room_id} créneau:${e.timeslot_id} <button onclick="del('${e.id}')">Suppr</button></div>`).join('') : '<small>Aucune séance</small>';
+}
+async function del(id){ if(!confirm('Supprimer ?')) return; await fetch('/api/schedule?id='+id,{method:'DELETE'}); loadList(); }
 document.getElementById('createForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const payload={
@@ -30,11 +52,13 @@ document.getElementById('createForm').addEventListener('submit', async e=>{
     timeslot_id: document.getElementById('timeslotSelect').value,
     subject_id: document.getElementById('subjectSelect').value,
     teacher_id: document.getElementById('teacherSelect').value,
-    room_id: document.getElementById('roomSelect').value
+    room_id: document.getElementById('roomSelect').value,
+    note: document.getElementById('note').value
   };
   const res = await fetch('/api/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   if(!res.ok){ alert('Erreur: '+(await res.json()).error); return; }
   alert('Séance ajoutée');
+  loadList();
 });
 loadOptions();
 </script>
