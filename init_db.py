@@ -1,9 +1,7 @@
-from app import db, Timeslot, Class, Room, Subject, User, ScheduleEntry
-
+from app import db, Timeslot, Class, Room, Subject, User
 # create tables and add sample data
 db.create_all()
 
-# insert sample only if tables empty
 if not Timeslot.query.first():
     times = [
         (1,"07:00","08:00","1ere séance"),
@@ -29,5 +27,8 @@ if not Subject.query.first():
     db.session.add(Subject(name='Maths'))
     db.session.add(Subject(name='Physique'))
     db.session.add(Subject(name='Informatique'))
+if not User.query.first():
+    db.session.add(User(email='admin@example.com', full_name='Admin', role='admin'))
+    db.session.add(User(email='prof1@example.com', full_name='Prof 1', role='teacher'))
 db.session.commit()
 print('DB initialized with sample data.')
