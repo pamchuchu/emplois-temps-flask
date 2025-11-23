@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Enseignant - Emplois du temps</title><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<main>
+  <h1>Vue Enseignant</h1>
+  <p>Entrez votre email pour voir votre emploi du temps</p>
+  <input id="email" placeholder="email">
+  <button id="go">Voir</button>
+  <div id="list"></div>
+</main>
+<script>
+document.getElementById('go').addEventListener('click', async ()=>{
+  const email = document.getElementById('email').value;
+  alert('Interface prête ; connecte-la aux API selon ton déploiement.');
+});
+</script>
+</body>
+</html>
